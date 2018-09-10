@@ -13,7 +13,7 @@ jid=$3
 
 
 START_TIME=`echo $(($(date +%s%N)/1000000))`
-MAILDEST=dba@conexia.com
+MAILDEST=dfeito@conexia.com
 DIR=/home/bases_postgres/scripts/pgMonitor
 LOG=$DIR/logs/pgmon-$(date +"%Y-%m-%d")-$jhostname-$jport.log
 PG_HOME=/usr/pgsql-9.6
@@ -54,8 +54,7 @@ else
   touch $mypidfile
 fi
 
-# DAF Descomentar para debug
-# exec > >(tee -a $LOG) 2>&1
+ exec > >(tee -a $LOG) 2>&1
 
     echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] 
     echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] ==============================================================
@@ -65,7 +64,7 @@ fi
     echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] ==============================================================
     echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] 
    
-    nc -4 -w 5 $jhostname $jport </dev/null;
+    nc -4 -w 10 $jhostname $jport </dev/null;
     if [ "$?" -ne 0 ]
     then
         echo [$(date +"%Y-%m-%d %H:%M:%S")][ERROR] No se puede acceder al servidor $jhostname $jport
@@ -87,14 +86,6 @@ fi
             varVersion=$(psql -h $jhostname -p $jport -U postgres -A -t -c "SHOW server_version;")
             echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] Version: $varVersion
             
-
-            echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] Revisando version...
-            psql -h localhost -p $LOCALPORT -U postgres  -A -t -d db_monitoreo -c "insert into versiones ( estado, valor, cmdsid) values ('AA', '$varVersion', 1) ON CONFLICT DO NOTHING;"
-
-            echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] Actualizando version del servidor...
-            psql -h localhost -p $LOCALPORT -U postgres  -A -t -d db_monitoreo -c "update servidores set pgversion = '$varVersion', fecha_update = now() where id = $jid;"
-
-
             vcounter=0
             
             # Primero ejecuto solo las cosas que van sobre la base postgres....
@@ -135,7 +126,7 @@ fi
                     
                 done
 
-                rm -f $mypidfile.tmp
+                rm $mypidfile.tmp
 
             done
             
@@ -188,8 +179,6 @@ fi
                     
                 done
 
-                rm -f $mypidfile.${Record[1]}.tmp
-
             done
             
             echo [$(date +"%Y-%m-%d %H:%M:%S")][INFO] "No hay mas consultas para las bases: $vcounter2"
@@ -203,7 +192,7 @@ fi
                 echo [$(date +"%Y-%m-%d %H:%M:%S")][ERROR] No hay consultas para "select id, consulta  from public.consultar2($jid, '$varVersion', '${Record[1]}');" 
                 echo [$(date +"%Y-%m-%d %H:%M:%S")][ERROR] No hay consultas para "select id, consulta  from public.consultar2($jid, '$varVersion', '${Record[1]}');" | mutt -s "MONITOREO - Fallo por falta de comandos" $MAILDEST
 
-                psql -h localhost -p $LOCALPORT -U postgres  -A -t -d db_monitoreo -c "update servidores set estado = 'AP', fecha_update = now() where id = $jid;"
+                psql -h localhost -p $LOCALPORT -U postgres  -A -t -d db_monitoreo -c "update servidores set estado = 'AP' where id = $jid;"
                
             fi
 
